@@ -1,0 +1,89 @@
+﻿@page "/"
+@using System.Globalization;
+@using FinanceMentor.Client.Services;
+@inject IDataService _dataService;
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                @CurrentYear - Earnings and Expenses
+            </div>
+            <div class="card-body">
+                <RadzenChart>
+                    <RadzenColumnSeries Fill="#AACDBE" Data="@yearlyEarnings" CategoryProperty="Month" ValueProperty="Amount" Title="Earnings" LineType="LineType.Dashed" />
+                    <RadzenColumnSeries Fill="#EA907A" Data="@yearlyExpenses" CategoryProperty="Month" ValueProperty="Amount" Title="Expenses" LineType="LineType.Dashed" />
+                    <RadzenColumnOptions Radius="5" />
+                    <RadzenValueAxis Formatter="@FormatAsGBP">
+                        <RadzenGridLines Visible="true" />
+                        <RadzenAxisTitle Text="Amount in GBP" />
+                    </RadzenValueAxis>
+                </RadzenChart>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (earnings != null)
+{
+    <div class="row mt-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    Earnings - Last 3 Months
+                </div>
+                <div class="card-body">
+                    <div style="display:flex">
+                        <PieChart Colors="@colors" Data="@earnings.CurrentMonth" />
+                        <PieChart Colors="@colors" Data="@earnings.LastMonth" />
+                        <PieChart Colors="@colors" Data="@earnings.PreviousMonth" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (expenses != null)
+{
+    <div class="row mt-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    Expenses - Last 3 Months
+                </div>
+                <div class="card-body">
+                    <div style="display:flex">
+                        <PieChart Colors="@colors" Data="@expenses.CurrentMonth" />
+                        <PieChart Colors="@colors" Data="@expenses.LastMonth" />
+                        <PieChart Colors="@colors" Data="@expenses.PreviousMonth" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private static int CurrentYear = DateTime.Today.Year;
+    private ICollection<string> colors = new List<string>() { "#FBC687", "#F4F7C5", "#93ABD3" };
+    private ICollection<YearlyItem> yearlyExpenses;
+    private ICollection<YearlyItem> yearlyEarnings;
+    private ThreeMonthsData earnings;
+    private ThreeMonthsData expenses;
+
+    protected override async Task OnInitializedAsync()
+    {
+        earnings = await _dataService.LoadLast3MonthsEarnings();
+        expenses = await _dataService.LoadLast3MonthsExpenses();
+        yearlyExpenses = await _dataService.LoadCurrentYearExpenses();
+        yearlyEarnings = await _dataService.LoadCurrentYearEarnings();
+
+        StateHasChanged();
+    }
+
+    private string FormatAsGBP(object value)
+    {
+        return ((double)value).ToString("C0", CultureInfo.CreateSpecificCulture("en-GB"));
+    }
+}
